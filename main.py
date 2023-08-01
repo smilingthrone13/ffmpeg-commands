@@ -60,8 +60,8 @@ def video_info(path: Path) -> VideoFile:
         name=path.name,
         width=res_dict['width'],
         height=res_dict['height'],
-        aspect_ratio=res_dict.get('display_aspect_ratio') or "16:9",
-        fps=int(round(eval(res_dict.get('avg_frame_rate') or "24")))
+        aspect_ratio=res_dict.get('display_aspect_ratio') or "16:9",  # fallback in case info has no aspect ratio tag
+        fps=int(round(eval(res_dict.get('avg_frame_rate') or 24)))
     )
 
 
@@ -73,21 +73,27 @@ def concat_videos(output_format: str, *args: Path | str):
     files_info.sort(key=lambda x: x.height * x.width)
     key_video = files_info[-1]
 
+    # Selecting the lowest fps across all videos
+    files_info.sort(key=lambda x: x.fps)
+    lowest_fps = files_info[0].fps
+
     # Warning user if any videos have different properties from key video
     for file in files_info:
         if any([file.width != key_video.width,
-               file.height != key_video.height,
-               file.fps != key_video.fps,
-               file.aspect_ratio != key_video.aspect_ratio]):
-            print(f"File {file.name} may have black bars or wrong aspect ratio due to different properties from key file {key_video.name}!")
+                file.height != key_video.height,
+                file.fps != lowest_fps,
+                file.aspect_ratio != key_video.aspect_ratio]):
+            print(f"File {file.name} may result in black bars or wrong aspect ratio "
+                  f"due to different properties from key file {key_video.name}!")
 
     # Creating ffmpeg arguments
     input_streams = [f"-i {x.as_posix()}" for x in inputs]
     stream_names = [f"[v{i}]" for i in range(len(inputs))]
     filters = [
-        f"[{i}:v:0]scale='min({key_video.width},iw)':'min({key_video.height},ih)':force_original_aspect_ratio=decrease," \
-        f"pad={key_video.width}:{key_video.height}:-1:-1:color=black," \
-        f"setsar={key_video.aspect_ratio},fps={key_video.fps}[v{i}]" for i in range(len(inputs))]
+        f"[{i}:v:0]scale='min({key_video.width},iw)':'min({key_video.height},ih)':force_original_aspect_ratio=decrease,"
+        f"pad={key_video.width}:{key_video.height}:-1:-1:color=black,"
+        f"setsar={key_video.aspect_ratio},fps={lowest_fps}[v{i}]" for i in range(len(inputs))
+    ]
     output_file = inputs[0].parent.joinpath('result', f'concat_output.{output_format}')
 
     if not output_file.parent.exists():
