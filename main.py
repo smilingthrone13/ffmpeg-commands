@@ -123,13 +123,17 @@ def concat_videos(output_format: str, *args: Path | str):
     lowest_fps = sorted(files_info, key=lambda x: x.fps)[0].fps
 
     # Warning user if any videos have different properties from key video
+    files_to_warn = []
     for file in files_info:
         if any([file.width != key_video.width,
                 file.height != key_video.height,
                 file.fps != lowest_fps,
                 file.aspect_ratio != key_video.aspect_ratio]):
-            print(f"File {file.name} may result in black bars or wrong aspect ratio "
-                  f"due to different properties from key file {key_video.name}!")
+            files_to_warn.append(file)
+    if files_to_warn:
+        print(f"Following files may result in black bars or wrong aspect ratio "
+              f"due to different properties from key file {key_video.name}:\n"
+              f"{', '.join([x.name for x in files_to_warn])}")
 
     # Creating ffmpeg arguments
     input_streams = [f"-i {x.as_posix()}" for x in inputs]
@@ -140,6 +144,7 @@ def concat_videos(output_format: str, *args: Path | str):
         f"setsar={key_video.aspect_ratio},fps={lowest_fps}[v{i}]" for i in range(len(inputs))
     ]
 
+    # Running ffmpeg command
     p = subprocess.Popen(
         f'ffmpeg -loglevel 0 -y {" ".join(input_streams)} '
         f'-filter_complex "{";".join(filters)};{"".join(stream_names)}concat=n={len(input_streams)}:v=1[outv]" '
