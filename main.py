@@ -6,13 +6,23 @@ from typing import Optional
 
 
 # TODO: заготовить мапу в виде {"extension": "codec"} и выбирать кодек автоматически в зависимости от выбранного пользователем расширения
+#  {"mp4": "libx264"}
 
 
 def create_from_seq(seq_path: Path,
                     ext: str,
-                    codec: str = 'libx264',  # todo добавить проверку кодеков?
+                    codec: str = 'libx264',
                     fps: int = 24,
                     quality: str = 'normal') -> Path:
+    """
+    Create videofile from sequence of frames saved in .exr
+    :param seq_path: Path to sequence folder
+    :param ext: Output video extention
+    :param codec: Output video codec
+    :param fps: Output video fps
+    :param quality: Output video quality
+    :return: Path to output video
+    """
     quality_num = 20
     match str(quality).lower():
         case "high":
@@ -21,16 +31,22 @@ def create_from_seq(seq_path: Path,
             quality_num = 20
         case 'low':
             quality_num = 30
-    video_path = seq_path.parent.joinpath(f"{seq_path.parent.name}.{ext}")
+    video_path = seq_path.parent.joinpath(f"{seq_path.parent.with_suffix(ext).name}")
     p = subprocess.Popen(
         f'ffmpeg -loglevel 0 -y -r 24 -i "{seq_path.as_posix()}/sequence.%08d.exr" -vf fps={fps} '
-        f'-crf {quality_num} -vcodec {codec} "{video_path.as_posix()}')
+        f'-crf {quality_num} -vcodec {codec} "{video_path.as_posix()}'
+    )
     p.wait()
 
     return video_path
 
 
 def split_to_seq(video_path: Path) -> Path:
+    """
+    Split videofile to sequence of frames with .exr extension
+    :param video_path: Path to video to split
+    :return:
+    """
     seq_path = video_path.parent.joinpath("seq")
     if not seq_path.exists():
         seq_path.mkdir()
@@ -54,7 +70,9 @@ class VideoFile:
 
 
 def file_info(path: Path) -> dict:
-    json_s = subprocess.check_output(f'ffprobe -v quiet -show_streams -select_streams v:0 -of json "{path.as_posix()}"')
+    json_s = subprocess.check_output(
+        f'ffprobe -v quiet -show_streams -select_streams v:0 -of json "{path.as_posix()}"'
+    )
     return json.loads(json_s)['streams'][0]
 
 
@@ -74,7 +92,22 @@ def video_info(path: Path) -> Optional[VideoFile]:
 
 
 def concat_videos(output_format: str, *args: Path | str):
+    """
+    Concatinate any number of given videos into one. Files will be joined in given order.
+    If input files have different resolutions, aspect ratios or fps, output video will select video w/
+    the highest res from inputs as a "key video" and use its res and aspect ratio. For fps, it will select the
+    lowest one and force it. Any videos that does not match "key video" params won't be stretched - instead it
+    will remain in original size w/ blackbars added.
+    Note: this works only for video stream, any audio will be dropped!
+    :param output_format: Output videofile format
+    :param args: Paths to videos to concatinate
+    :return: Path to output video
+    """
     inputs = [Path(x) for x in args]
+    output_file = inputs[0].parent.joinpath('result', f'concat_output.{output_format}')
+
+    if not output_file.parent.exists():
+        output_file.parent.mkdir()
 
     # Skipping files that returned exception on info reading
     files_info = []
@@ -84,12 +117,10 @@ def concat_videos(output_format: str, *args: Path | str):
             files_info.append(res)
 
     # Selecting video w/ the highest resolution to be used as a key reference
-    files_info.sort(key=lambda x: x.height * x.width)
-    key_video = files_info[-1]
+    key_video = sorted(files_info, key=lambda x: x.height * x.width)[-1]
 
     # Selecting the lowest fps across all videos
-    files_info.sort(key=lambda x: x.fps)
-    lowest_fps = files_info[0].fps
+    lowest_fps = sorted(files_info, key=lambda x: x.fps)[0].fps
 
     # Warning user if any videos have different properties from key video
     for file in files_info:
@@ -108,10 +139,6 @@ def concat_videos(output_format: str, *args: Path | str):
         f"pad={key_video.width}:{key_video.height}:-1:-1:color=black,"
         f"setsar={key_video.aspect_ratio},fps={lowest_fps}[v{i}]" for i in range(len(inputs))
     ]
-    output_file = inputs[0].parent.joinpath('result', f'concat_output.{output_format}')
-
-    if not output_file.parent.exists():
-        output_file.parent.mkdir()
 
     p = subprocess.Popen(
         f'ffmpeg -loglevel 0 -y {" ".join(input_streams)} '
