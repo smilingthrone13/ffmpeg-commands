@@ -91,7 +91,7 @@ def video_info(path: Path) -> Optional[VideoFile]:
         return
 
 
-def concat_videos(output_format: str, *args: Path | str):
+def concat_videos(output_format: str, *args: Path | str) -> Optional[Path]:
     """
     Concatinate any number of given videos into one. Files will be joined in given order.
     If input files have different resolutions, aspect ratios or fps, output video will select video w/
@@ -115,6 +115,9 @@ def concat_videos(output_format: str, *args: Path | str):
         res = video_info(file)
         if res:
             files_info.append(res)
+    if not files_info:
+        print("No suitable videofiles found!")
+        return
 
     # Selecting video w/ the highest resolution to be used as a key reference
     key_video = sorted(files_info, key=lambda x: x.height * x.width)[-1]
