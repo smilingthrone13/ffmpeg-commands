@@ -2,6 +2,10 @@ import dataclasses
 import json
 import subprocess
 from pathlib import Path
+from typing import Optional
+
+
+# TODO: заготовить мапу в виде {"extension": "codec"} и выбирать кодек автоматически в зависимости от выбранного пользователем расширения
 
 
 def create_from_seq(seq_path: Path,
@@ -54,22 +58,32 @@ def file_info(path: Path) -> dict:
     return json.loads(json_s)['streams'][0]
 
 
-def video_info(path: Path) -> VideoFile:
-    res_dict = file_info(path)
-    return VideoFile(
-        name=path.name,
-        width=res_dict['width'],
-        height=res_dict['height'],
-        aspect_ratio=res_dict.get('display_aspect_ratio') or "16:9",  # fallback in case info has no aspect ratio tag
-        fps=int(round(eval(res_dict.get('avg_frame_rate') or 24)))
-    )
+def video_info(path: Path) -> Optional[VideoFile]:
+    try:
+        res_dict = file_info(path)
+        return VideoFile(
+            name=path.name,
+            width=res_dict['width'],
+            height=res_dict['height'],
+            aspect_ratio=res_dict.get('display_aspect_ratio') or "16:9",  # fallback if file has no aspect ratio tag
+            fps=int(round(eval(res_dict.get('avg_frame_rate') or 24)))
+        )
+    except:
+        print(f"File {path.name} could not be read! Skipping...")
+        return
 
 
 def concat_videos(output_format: str, *args: Path | str):
     inputs = [Path(x) for x in args]
 
+    # Skipping files that returned exception on info reading
+    files_info = []
+    for file in inputs:
+        res = video_info(file)
+        if res:
+            files_info.append(res)
+
     # Selecting video w/ the highest resolution to be used as a key reference
-    files_info = [video_info(x) for x in inputs]
     files_info.sort(key=lambda x: x.height * x.width)
     key_video = files_info[-1]
 
