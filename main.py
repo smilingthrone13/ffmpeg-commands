@@ -136,7 +136,7 @@ def concat_videos(output_format: str, *args: Path | str):
               f"{', '.join([x.name for x in files_to_warn])}")
 
     # Creating ffmpeg arguments
-    input_streams = [f"-i {x.as_posix()}" for x in inputs]
+    input_streams = [f'-i "{x.as_posix()}"' for x in inputs]
     stream_names = [f"[v{i}]" for i in range(len(inputs))]
     filters = [
         f"[{i}:v:0]scale='min({key_video.width},iw)':'min({key_video.height},ih)':force_original_aspect_ratio=decrease,"
@@ -155,5 +155,29 @@ def concat_videos(output_format: str, *args: Path | str):
     return output_file
 
 
-files_to_concat = [x for x in Path(r"C:\Users\l.konstantin\Desktop\test").iterdir() if x.is_file()]
-concat_videos('mp4', *files_to_concat)
+# files_to_concat = [x for x in Path(r"C:\Users\l.konstantin\Desktop\test").iterdir() if x.is_file()]
+# concat_videos('mp4', *files_to_concat)
+
+def resize_image(image_path: Path, resolution: tuple[int, int]) -> Path:
+    """
+    Resize image to given resolution keeping original aspect ratio.
+    If current resolution is lower than desired, does not upscale.
+    :param image_path: Path to image to resize
+    :param resolution: Target resolution as "(width, height)"
+    :return: Path to resized image
+    """
+    output_file = image_path.with_name(
+        f"{image_path.stem}_{'x'.join([str(x) for x in list(resolution)])}{image_path.suffix}"
+    )
+
+    p = subprocess.Popen(
+        f'ffmpeg -loglevel 0 -y -i "{image_path.as_posix()}" '
+        f'-vf "scale=w={resolution[0]}p:h={resolution[1]}:force_original_aspect_ratio=decrease:force_divisible_by=2" '
+        f'"{output_file.as_posix()}"'
+    )
+    p.wait()
+
+    return output_file
+
+
+resize_image(Path(r"C:\Users\l.konstantin\Desktop\test\test.jpg"), (2000, 2000))
