@@ -5,7 +5,7 @@ from typing import Optional
 from utils import get_file_info
 
 
-def concat_videos(output_format: str, videos_list: list[Path | str]) -> Optional[Path]:
+def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
     """
     Concatinate any number of given videos into one. Files will be joined in given order.
     If input files have different resolutions, aspect ratios or FPS, output video will select video w/
@@ -13,12 +13,15 @@ def concat_videos(output_format: str, videos_list: list[Path | str]) -> Optional
     lowest one and force it. Any videos that does not match "key video" params won't be stretched - instead it
     will remain in original size w/ blackbars added.
     Note: this works only for video stream, any audio will be dropped!
-    :param output_format: Output videofile format
+    :param ext: Output videofile extension
     :param videos_list: List of paths to videos to concatinate
     :return: Path to output video
     """
+    if not videos_list:
+        print("No inputs provided!")
+        return
     inputs = [Path(x) for x in videos_list]
-    output_file = inputs[0].parent.joinpath('result', f'concat_output.{output_format}')
+    output_file = inputs[0].parent.joinpath('result', f'concat_output.{ext.strip(".")}')
 
     if not output_file.parent.exists():
         output_file.parent.mkdir()
@@ -72,4 +75,4 @@ def concat_videos(output_format: str, videos_list: list[Path | str]) -> Optional
     return output_file
 
 # files_to_concat = [x for x in Path(r"C:\Users\l.konstantin\Desktop\test").iterdir() if x.is_file()]
-# concat_videos('mp4', *files_to_concat)
+# concat_videos('mp4', files_to_concat)
