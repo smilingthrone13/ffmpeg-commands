@@ -4,7 +4,7 @@ from pathlib import Path
 
 def split_to_seq(video_path: Path) -> Path:
     """
-    Split videofile to sequence of frames with .exr extension
+    Split video file to sequence of frames with .exr extension
     :param video_path: Path to video to split
     :return:
     """

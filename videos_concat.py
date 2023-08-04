@@ -7,14 +7,14 @@ from utils import get_file_info
 
 def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
     """
-    Concatinate any number of given videos into one. Files will be joined in given order.
+    Concatenate any number of given videos into one. Files will be joined in given order.
     If input files have different resolutions, aspect ratios or FPS, output video will select video w/
     the highest res from inputs as a "key video" and use its res and aspect ratio. For FPS, it will select the
     lowest one and force it. Any videos that does not match "key video" params won't be stretched - instead it
-    will remain in original size w/ blackbars added.
+    will remain in original size w/ black bars added.
     Note: this works only for video stream, any audio will be dropped!
-    :param ext: Output videofile extension
-    :param videos_list: List of paths to videos to concatinate
+    :param ext: Output video file extension
+    :param videos_list: List of paths to videos to concatenate
     :return: Path to output video
     """
     if not videos_list:
@@ -33,7 +33,7 @@ def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
         if res:
             files_info.append(res)
     if not files_info:
-        print("No suitable videofiles found!")
+        print("No suitable video files found!")
         return
 
     # Selecting video w/ the highest resolution to be used as a key reference
