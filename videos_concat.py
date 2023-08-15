@@ -47,8 +47,8 @@ def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
     for file in files_info:
         if any([file.width != key_video.width,
                 file.height != key_video.height,
-                file.fps != lowest_fps,
-                file.aspect_ratio != key_video.aspect_ratio]):
+                file.sample_ar != key_video.sample_ar,
+                file.display_ar != key_video.display_ar]):
             files_to_warn.append(file)
     if files_to_warn:
         print(f"Following files may result in black bars or wrong aspect ratio "
@@ -61,15 +61,15 @@ def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
     filters = [
         f"[{i}:v:0]scale='min({key_video.width},iw)':'min({key_video.height},ih)':force_original_aspect_ratio=decrease,"
         f"pad={key_video.width}:{key_video.height}:-1:-1:color=black,"
-        f"setsar={key_video.aspect_ratio},fps={lowest_fps}[v{i}]" for i in range(len(inputs))
+        f"setsar={key_video.sample_ar},fps={lowest_fps}[v{i}]" for i in range(len(inputs))
     ]
 
+    cmd = f'ffmpeg -loglevel 0 -y {" ".join(input_streams)} ' \
+          f'-filter_complex "{";".join(filters)};{"".join(stream_names)}concat=n={len(input_streams)}:v=1[outv]" ' \
+          f'-map "[outv]" -c:v "libx264" -crf 15 -preset slow -threads 10 {output_file.as_posix()}'
+
     # Running ffmpeg command
-    p = subprocess.Popen(
-        f'ffmpeg -loglevel 0 -y {" ".join(input_streams)} '
-        f'-filter_complex "{";".join(filters)};{"".join(stream_names)}concat=n={len(input_streams)}:v=1[outv]" '
-        f'-map "[outv]" -c:v "libx264" -crf 15 -preset slow -threads 10 {output_file.as_posix()}'
-    )
+    p = subprocess.Popen(cmd)
     p.wait()
 
     return output_file
