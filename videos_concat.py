@@ -77,14 +77,14 @@ def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
     # Running ffmpeg command
     p = subprocess.Popen(cmd, stderr=subprocess.PIPE, universal_newlines=True)
     while True:
-        stderr_chunk = p.stderr.readline()
+        stderr_chunk = p.stderr.readline().strip()
 
         if stderr_chunk == '' and p.poll() is not None:
             print('Videos concatenated!')
             break
 
         if stderr_chunk:
-            match = re.search(r'frame=\s*(\d+)', stderr_chunk.strip())
+            match = re.search(r'frame=\s*(\d+)', stderr_chunk)
             if match:
                 current_frame = int(match.group(1))
                 print(f"Current progress: {current_frame / total_frames * 100:.2f}%", flush=True)
