@@ -87,7 +87,7 @@ def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
             match = re.search(r'frame=\s*(\d+)', stderr_chunk)
             if match:
                 current_frame = int(match.group(1))
-                print(f"Current progress: {current_frame / total_frames * 100:.2f}%", flush=True)
+                print(f"Current progress: {current_frame / total_frames * 100:.2f}%", end='\r', flush=True)
 
     return output_file
 
