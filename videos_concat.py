@@ -91,5 +91,5 @@ def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
 
     return output_file
 
-files_to_concat = [x for x in Path(r"C:\Users\l.konstantin\Desktop\test").iterdir() if x.is_file()]
-concat_videos('mp4', files_to_concat)
+# files_to_concat = [x for x in Path(r"C:\Users\l.konstantin\Desktop\test").iterdir() if x.is_file()]
+# concat_videos('mp4', files_to_concat)
