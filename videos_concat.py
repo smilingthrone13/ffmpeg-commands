@@ -72,7 +72,7 @@ def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
 
     cmd = f'ffmpeg -loglevel 0 -stats -y {" ".join(input_streams)} ' \
           f'-filter_complex "{";".join(filters)};{"".join(stream_names)}concat=n={len(input_streams)}:v=1[outv]" ' \
-          f'-map "[outv]" -c:v "libx264" -fps_mode vfr -crf 15 -preset slow -threads 10 {output_file.as_posix()}'
+          f'-map "[outv]" -c:v "libx264" -vsync vfr -crf 15 -preset slow -threads 10 {output_file.as_posix()}'
 
     # Running ffmpeg command
     p = subprocess.Popen(cmd, stderr=subprocess.PIPE, universal_newlines=True)
@@ -91,5 +91,5 @@ def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
 
     return output_file
 
-# files_to_concat = [x for x in Path(r"C:\Users\l.konstantin\Desktop\test").iterdir() if x.is_file()]
-# concat_videos('mp4', files_to_concat)
+files_to_concat = [x for x in Path(r"C:\Users\l.konstantin\Desktop\test").iterdir() if x.is_file()]
+concat_videos('mp4', files_to_concat)
