@@ -13,6 +13,7 @@ class MediaFile:
     name: str
     width: int
     height: int
+    duration: float
     sample_ar: str
     display_ar: str
     fps: int
@@ -35,6 +36,7 @@ def get_file_info(path: Path) -> Optional[MediaFile]:
             name=path.name,
             width=res_dict['width'],
             height=res_dict['height'],
+            duration=res_dict.get('duration') or 0,  # EXR does not have this for sure so set to 0
             sample_ar=res_dict.get('sample_aspect_ratio') or "1:1",
             display_ar=res_dict.get('display_aspect_ratio') or res_dict['width'] / res_dict['height'],
             fps=eval(str(res_dict.get('avg_frame_rate')))  # Can possibly be None

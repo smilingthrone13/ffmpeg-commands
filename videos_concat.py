@@ -1,3 +1,4 @@
+import re
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -42,6 +43,11 @@ def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
     # Selecting the lowest FPS across all videos
     lowest_fps = sorted(files_info, key=lambda x: x.fps)[0].fps
 
+    # Estimating total number of frames to be encoded - for progress bar
+    total_frames = round(sum(float(x.duration) * lowest_fps for x in files_info))
+    if total_frames == 0:
+        total_frames = 1
+
     # Warning user if any videos have different properties from key video
     files_to_warn = []
     for file in files_info:
@@ -64,13 +70,24 @@ def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
         f"setsar={key_video.sample_ar},fps={lowest_fps}[v{i}]" for i in range(len(inputs))
     ]
 
-    cmd = f'ffmpeg -loglevel 0 -y {" ".join(input_streams)} ' \
+    cmd = f'ffmpeg -loglevel 0 -hide_banner -stats -y {" ".join(input_streams)} ' \
           f'-filter_complex "{";".join(filters)};{"".join(stream_names)}concat=n={len(input_streams)}:v=1[outv]" ' \
-          f'-map "[outv]" -c:v "libx264" -crf 15 -preset slow -threads 10 {output_file.as_posix()}'
+          f'-map "[outv]" -c:v "libx264" -fps_mode vfr -crf 15 -preset slow -threads 10 {output_file.as_posix()}'
 
     # Running ffmpeg command
-    p = subprocess.Popen(cmd)
-    p.wait()
+    p = subprocess.Popen(cmd, stderr=subprocess.PIPE, universal_newlines=True)
+    while True:
+        stderr_chunk = p.stderr.readline()
+
+        if stderr_chunk == '' and p.poll() is not None:
+            print('Videos concatenated!')
+            break
+
+        if stderr_chunk:
+            match = re.search(r'frame=\s*(\d+)', stderr_chunk.strip())
+            if match:
+                current_frame = int(match.group(1))
+                print(f"Current progress: {current_frame / total_frames * 100:.2f}%", flush=True)
 
     return output_file
 
