@@ -70,7 +70,7 @@ def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
         f"setsar={key_video.sample_ar},fps={lowest_fps}[v{i}]" for i in range(len(inputs))
     ]
 
-    cmd = f'ffmpeg -loglevel 0 -hide_banner -stats -y {" ".join(input_streams)} ' \
+    cmd = f'ffmpeg -loglevel 0 -stats -y {" ".join(input_streams)} ' \
           f'-filter_complex "{";".join(filters)};{"".join(stream_names)}concat=n={len(input_streams)}:v=1[outv]" ' \
           f'-map "[outv]" -c:v "libx264" -fps_mode vfr -crf 15 -preset slow -threads 10 {output_file.as_posix()}'
 
