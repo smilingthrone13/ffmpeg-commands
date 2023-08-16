@@ -80,7 +80,7 @@ def concat_videos(ext: str, videos_list: list[Path | str]) -> Optional[Path]:
         stderr_chunk = p.stderr.readline().strip()
 
         if stderr_chunk == '' and p.poll() is not None:
-            print('Videos concatenated!')
+            print('\nVideos concatenated!')
             break
 
         if stderr_chunk:
